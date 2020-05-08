@@ -1,5 +1,11 @@
 pipeline {
    agent any
+   
+   parameters {
+        string(name: 'BUILD_HOSTNAME', description: 'The name of the hypervisor')
+        string(name: 'ILO_IP', description: 'The IP address for the server ilo')
+        booleanParam(name: 'SATELLITE', description: 'Use internal Satellite instead of CDN', defaultValue: false)
+    }
 
    stages {
       stage('Clean up') {
