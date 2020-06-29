@@ -9,11 +9,22 @@ pipeline {
 
    stages {
       stage('Clean up') {
+           when {
+                expression {
+                     params.skip_cleanup == false
+                }
+            }
          steps {
             echo 'Clean up'
          }
       }
       stage ('Prepare Hypervisor') {
+         when {
+                expression {
+                     params.skip_hypervisor == false
+                }
+         }
+      
          steps {
             echo 'Run necessary tasks in the hypervisor to deploy virtual infrastructure.'
          }
@@ -24,6 +35,11 @@ pipeline {
          }
       }
       stage ('Undercloud') {
+          when {
+                expression {
+                     params.skip_undercloud == false
+                }
+         }
          steps {
             echo 'Setup undercloud base system'
             echo 'Prepare undercloud.conf'
@@ -32,6 +48,11 @@ pipeline {
          }
       }
       stage ('Overcloud') {
+         when {
+                expression {
+                     params.skip_overcloud == false
+                }
+         }
          steps {
             echo 'Setup overcloud config'
             echo 'Clone templates'
@@ -39,6 +60,11 @@ pipeline {
          }
       }
       stage ('Test') {
+         when {
+                expression {
+                     params.skip_test == false
+                }
+         }
          steps {
             echo 'Test overcloud deployment'
             echo 'Validation framework'
@@ -49,6 +75,11 @@ pipeline {
          }
       }
     stage ('Deploy Tenant') {
+         when {
+                expression {
+                     params.skip_test_tenant == false
+                }
+         }
          steps {
             echo 'Deploy a test tenant'
          }
