@@ -16,6 +16,12 @@ pipeline {
             }
          steps {
             echo 'Clean up'
+            sh cleanup.sh $BUILD_HOSTNAME
+         }
+      }
+      stage ('Setup Shared Resources') {
+         steps {
+            git url: "https://github.com/mauroseb/bootstrap-rhosp.git"
          }
       }
       stage ('Prepare Hypervisor') {
@@ -24,14 +30,33 @@ pipeline {
                      params.skip_hypervisor == false
                 }
          }
-      
-         steps {
-            echo 'Run necessary tasks in the hypervisor to deploy virtual infrastructure.'
-         }
+        steps {
+          echo 'Run necessary tasks in the hypervisor to deploy virtual infrastructure.'
+          ansiblePlaybook('bootstrap-rhosp/site.yml') {
+          inventoryContent($BUILD_HOSTNAME, true)
+             tags('prereqs')
+             extraVars {
+                extraVar("cdnuser", "mycdnuser", true)
+                extraVar("cdnpass", "mycdnpass", true)
+                extraVar("poolid", "mysubspool", true)
+                extraVar("rhosp_version", $RHOSP_VERSION, true)
+             }
+          }
+        }
       }
       stage ('Create Resources') {
          steps {
             echo 'Create virtual infrastructure like networks and VMs.'
+            ansiblePlaybook('bootstrap-rhosp/site.yml') {
+               inventoryContent($BUILD_HOSTNAME, true)
+               tags('libvirt,vbmc,')
+               extraVars {
+                  extraVar("cdnuser", "mycdnuser", true)
+                  extraVar("cdnpass", "mycdnpass", true)
+                  extraVar("poolid", "mysubspool", true)
+                  extraVar("rhosp_version", $RHOSP_VERSION, true)
+               }
+            }
          }
       }
       stage ('Undercloud') {
@@ -42,9 +67,39 @@ pipeline {
          }
          steps {
             echo 'Setup undercloud base system'
+            ansiblePlaybook('bootstrap-rhosp/site.yml') {
+               inventoryContent($BUILD_HOSTNAME, true)
+               tags('undercloud')
+               extraVars {
+                  extraVar("cdnuser", "mycdnuser", true)
+                  extraVar("cdnpass", "mycdnpass", true)
+                  extraVar("poolid", "mysubspool", true)
+                  extraVar("rhosp_version", $RHOSP_VERSION, true)
+               }
+            }
             echo 'Prepare undercloud.conf'
             echo 'Deploy undercloud'
             echo 'Take snapshot of undercloud'
+         }
+      }
+      stage ('Import and Introspect') {
+         when {
+                expression {
+                     params.skip_introspection == false
+                }
+         }
+         steps {
+            echo 'Setup overcloud config'
+            ansiblePlaybook('bootstrap-rhosp/site.yml') {
+               inventoryContent($BUILD_HOSTNAME, true)
+               tags('import,introspect')
+               extraVars {
+                  extraVar("cdnuser", "mycdnuser", true)
+                  extraVar("cdnpass", "mycdnpass", true)
+                  extraVar("poolid", "mysubspool", true)
+                  extraVar("rhosp_version", $RHOSP_VERSION, true)
+               }
+            }
          }
       }
       stage ('Overcloud') {
@@ -55,8 +110,20 @@ pipeline {
          }
          steps {
             echo 'Setup overcloud config'
+            ansiblePlaybook('bootstrap-rhosp/site.yml') {
+               inventoryContent($BUILD_HOSTNAME, true)
+               tags('undercloud')
+               extraVars {
+                  extraVar("cdnuser", "mycdnuser", true)
+                  extraVar("cdnpass", "mycdnpass", true)
+                  extraVar("poolid", "mysubspool", true)
+                  extraVar("rhosp_version", $RHOSP_VERSION, true)
+               }
+            }
             echo 'Clone templates'
+            git url: "https://github.com/mauroseb/tht-rhosp${RHOSP_VERSION}"
             echo 'Deploy overcloud'
+            echo "RUN: sh -x tht-rhosp${RHOSP_VERSION}/deploy.sh"
          }
       }
       stage ('Test') {
@@ -81,7 +148,13 @@ pipeline {
                 }
          }
          steps {
-            echo 'Deploy a test tenant'
+            echo 'Deploy a test tenant with some workload'
+            git url: "https://github.com/mauroseb/ansible-osp-smoketest"
+            ansiblePlaybook('ansible_osp_smoketest/site.yml') {
+               inventoryContent($BUILD_HOSTNAME, true)
+               extraVars {
+                  extraVar("OS_CLOUD", "overcloud", false)
+            }
          }
       }
    }
