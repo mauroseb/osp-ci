@@ -8,6 +8,7 @@ pipeline {
    parameters {
         string(name: 'BUILD_HOSTNAME', description: 'The name of the hypervisor')
         string(name: 'ILO_IP', description: 'The IP address for the server ilo')
+        string(name: 'RHOSP_VERSION', description: 'OpenStack version to deploy')
         booleanParam(name: 'SATELLITE', description: 'Use internal Satellite instead of CDN', defaultValue: false)
         
     }
