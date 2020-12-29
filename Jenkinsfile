@@ -1,3 +1,7 @@
+#!/usr/bin/env groovy
+
+@Library('common') _
+
 pipeline {
    agent any
    
@@ -5,6 +9,7 @@ pipeline {
         string(name: 'BUILD_HOSTNAME', description: 'The name of the hypervisor')
         string(name: 'ILO_IP', description: 'The IP address for the server ilo')
         booleanParam(name: 'SATELLITE', description: 'Use internal Satellite instead of CDN', defaultValue: false)
+        
     }
 
    stages {
@@ -141,7 +146,7 @@ pipeline {
             echo "Post Results"
          }
       }
-    stage ('Deploy Tenant') {
+    stage ('Deploy Test Tenant') {
          when {
                 expression {
                      params.skip_test_tenant == false
